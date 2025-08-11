@@ -52,6 +52,13 @@ class WebsitesController < ApplicationController
       return
     end
 
+    # Check if website is published (allow owner to always view)
+    unless @website.published? || (user_signed_in? && @website.user == current_user)
+      Rails.logger.info "Website not published: #{@website.name}"
+      render_website_not_published
+      return
+    end
+
     # Find the specific page in the website's content
     @page = find_page_by_slug(@website, page_slug)
 
@@ -74,6 +81,7 @@ class WebsitesController < ApplicationController
 
     # Default to homepage for preview
     @page = find_page_by_slug(@website, "/")
+    @preview_mode = true
     render_website_page
   end
 
@@ -91,6 +99,7 @@ class WebsitesController < ApplicationController
     page_slug = "/#{page_slug}" unless page_slug.start_with?("/")
 
     @page = find_page_by_slug(@website, page_slug)
+    @preview_mode = true
 
     if @page.nil?
       redirect_to preview_website_path(@website), alert: "Page not found: #{page_slug}"
@@ -148,6 +157,7 @@ class WebsitesController < ApplicationController
     redirect_to websites_path, notice: "Website was successfully destroyed.", status: :see_other
   end
 
+  # GET /websites/uniteldirect/edit/about-us/meet-the-team
   def edit_page
     @website = Website.friendly.find(params[:id])
 
@@ -173,7 +183,7 @@ class WebsitesController < ApplicationController
     @page_title = @page['Name']
   end
 
-  # PATCH /websites/uniteldirect/edit/about-us
+  # PATCH /websites/uniteldirect/edit/about-us/meet-the-team
   def update_page
     @website = Website.friendly.find(params[:id])
 
@@ -213,6 +223,7 @@ class WebsitesController < ApplicationController
 
   private
 
+  # Update content for a specific page in the website's JSON structure
   def update_page_content(website, page_slug, new_content)
     return false unless website.content.is_a?(Hash) && website.content['pages'].is_a?(Array)
 
@@ -232,7 +243,7 @@ class WebsitesController < ApplicationController
   # Convert slug to URL parameter format for routing
   def slug_to_param(slug)
     return 'home' if slug == '/'
-    slug.gsub('/', '')
+    slug.sub(/^\//, '') # Remove only the leading slash
   end
 
   # Convert URL parameter back to slug format
@@ -297,6 +308,7 @@ class WebsitesController < ApplicationController
       pages << {
         "Name" => page_data[:Name],
         "Slug" => slug,
+        "position" => (page_data[:position] || (index.to_i + 1)).to_i,
         "content" => page_data[:content] || ""
       }
     end
@@ -306,22 +318,46 @@ class WebsitesController < ApplicationController
 
   # Update the website_params method
   def website_params
-    permitted_params = params.expect(website: [ :name, :domain_name, :content, pages: {} ])
+    Rails.logger.info "=== WEBSITE PARAMS DEBUG ==="
+    Rails.logger.info "Raw params: #{params[:website].inspect}"
+    Rails.logger.info "Pages present: #{params[:website][:pages].present?}"
+    Rails.logger.info "Pages content: #{params[:website][:pages].inspect}" if params[:website][:pages].present?
+    Rails.logger.info "Content present: #{params[:website][:content].present?}"
+    Rails.logger.info "Content: #{params[:website][:content].inspect}" if params[:website][:content].present?
+    Rails.logger.info "Published: #{params[:website][:published]}"
+    Rails.logger.info "============================="
 
-    # If pages are provided, process them and update content
-    if permitted_params[:pages].present?
-      # Store as Hash, not JSON string - Rails will handle JSON conversion
+    permitted_params = params.expect(website: [ :name, :domain_name, :content, :published, pages: {} ])
+
+    # If pages are provided via form fields, process them and update content
+    if permitted_params[:pages].present? && permitted_params[:pages].is_a?(Hash)
+      Rails.logger.info "Processing pages from form fields"
       permitted_params[:content] = process_page_params(permitted_params)
       permitted_params.delete(:pages)
-    elsif permitted_params[:content].present? && permitted_params[:content].is_a?(String)
-      # Parse JSON string if it's coming from the hidden field
-      begin
-        permitted_params[:content] = JSON.parse(permitted_params[:content])
-      rescue JSON::ParserError
-        # If parsing fails, leave as is
+    elsif permitted_params[:content].present?
+      Rails.logger.info "Processing content from hidden field"
+      # Handle the hidden field content
+      if permitted_params[:content].is_a?(String)
+        # Parse JSON string if it's coming from the hidden field
+        begin
+          permitted_params[:content] = JSON.parse(permitted_params[:content])
+          Rails.logger.info "Parsed JSON content successfully"
+        rescue JSON::ParserError => e
+          Rails.logger.warn "Failed to parse JSON content: #{e.message}"
+          Rails.logger.warn "Content was: #{permitted_params[:content]}"
+          # If parsing fails, remove content to prevent corruption
+          permitted_params.delete(:content)
+        end
+      else
+        Rails.logger.info "Content is already a Hash"
       end
+    else
+      Rails.logger.info "No pages or content provided, preserving existing"
+      # If no pages or content provided, keep existing content
+      permitted_params.delete(:content)
     end
 
+    Rails.logger.info "Final permitted_params: #{permitted_params.inspect}"
     permitted_params
   end
 
@@ -336,5 +372,9 @@ class WebsitesController < ApplicationController
   def render_page_not_found(page_slug)
     @page_slug = page_slug
     render 'page_not_found', layout: 'website_public', status: :not_found
+  end
+
+  def render_website_not_published
+    render 'not_published', layout: 'website_public', status: :forbidden
   end
 end

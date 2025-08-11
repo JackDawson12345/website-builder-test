@@ -3,21 +3,169 @@
   <p class="website-domain"><%= @website.domain_name %></p>
 </div>
 
-<!-- Navigation Menu -->
+<!-- Navigation Menu with Dropdowns -->
 <% if @website.content.is_a?(Hash) && @website.content['pages'].is_a?(Array) %>
+  <%
+    # Sort pages by position and build hierarchical structure
+    sorted_pages = @website.content['pages'].sort_by { |page| (page['position'] || 999).to_i }
+
+    # Separate top-level pages from subpages
+    top_level_pages = []
+    subpages_by_parent = {}
+
+    sorted_pages.each do |page|
+      slug_parts = page['Slug'].split('/').reject(&:empty?)
+
+      if slug_parts.length <= 1 || page['Slug'] == '/'
+        # Top-level page
+        top_level_pages << page
+      else
+        # Subpage - group by parent
+        parent_slug = "/#{slug_parts[0..-2].join('/')}"
+        subpages_by_parent[parent_slug] ||= []
+        subpages_by_parent[parent_slug] << page
+      end
+    end
+  %>
+
+  <style>
+      .dropdown {
+          position: relative;
+          display: inline-block;
+      }
+
+      .dropdown-content {
+          display: none;
+          position: absolute;
+          background-color: white;
+          min-width: 200px;
+          box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+          z-index: 1000;
+          border-radius: 0.375rem;
+          border: 1px solid #e2e8f0;
+          top: 100%;
+          left: 0;
+      }
+
+      .dropdown:hover .dropdown-content {
+          display: block;
+      }
+
+      .dropdown-content a {
+          color: #2d3748 !important;
+          padding: 0.75rem 1rem !important;
+          text-decoration: none !important;
+          display: block !important;
+          background: transparent !important;
+          border: none !important;
+          border-radius: 0 !important;
+          font-weight: 400 !important;
+          transition: background-color 0.2s ease;
+      }
+
+      .dropdown-content a:hover {
+          background-color: #f7fafc !important;
+      }
+
+      .dropdown-content a:first-child {
+          border-radius: 0.375rem 0.375rem 0 0;
+      }
+
+      .dropdown-content a:last-child {
+          border-radius: 0 0 0.375rem 0.375rem;
+      }
+
+      .dropdown-arrow {
+          margin-left: 0.25rem;
+          font-size: 0.75rem;
+          transition: transform 0.2s ease;
+      }
+
+      .dropdown:hover .dropdown-arrow {
+          transform: rotate(180deg);
+      }
+
+      .has-dropdown {
+          cursor: pointer;
+      }
+  </style>
+
   <nav class="website-nav" style="margin-bottom: 3rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
-    <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
-      <% @website.content['pages'].each do |page| %>
-        <li>
-          <% if page['Slug'] == @page['Slug'] %>
-            <span style="padding: 0.5rem 1rem; background: #3182ce; color: white; border-radius: 0.375rem; font-weight: 500;">
-              <%= page['Name'] %>
-            </span>
+    <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; align-items: flex-start;">
+      <% top_level_pages.each do |page| %>
+        <%
+          has_subpages = subpages_by_parent[page['Slug']] && subpages_by_parent[page['Slug']].any?
+          is_current_page = @page && page['Slug'] == @page['Slug']
+          is_current_section = @page && @page['Slug'].start_with?(page['Slug']) && page['Slug'] != '/'
+        %>
+
+        <li class="<%= 'dropdown' if has_subpages %>">
+          <% if has_subpages %>
+            <!-- Parent page with dropdown -->
+            <% if is_current_page || is_current_section %>
+              <span class="has-dropdown" style="padding: 0.5rem 1rem; background: #3182ce; color: white; border-radius: 0.375rem; font-weight: 500; display: inline-flex; align-items: center;">
+                <%= page['Name'] %>
+                <span class="dropdown-arrow">▼</span>
+              </span>
+            <% else %>
+              <%
+                # Generate the correct link for parent page
+                if defined?(@preview_mode) && @preview_mode
+                  if page['Slug'] == '/'
+                    parent_page_url = preview_website_path(@website)
+                  else
+                    parent_page_url = preview_page_website_path(@website, page_slug: page['Slug'].sub(/^\//, ''))
+                  end
+                else
+                  parent_page_url = page['Slug']
+                end
+              %>
+              <a href="<%= parent_page_url %>" class="has-dropdown"
+                 style="padding: 0.5rem 1rem; background: #f7fafc; color: #2d3748; border-radius: 0.375rem; text-decoration: none; font-weight: 500; border: 1px solid #e2e8f0; display: inline-flex; align-items: center;">
+                <%= page['Name'] %>
+                <span class="dropdown-arrow">▼</span>
+              </a>
+            <% end %>
+
+            <!-- Dropdown content -->
+            <div class="dropdown-content">
+              <!-- Subpages sorted by position -->
+              <% subpages_by_parent[page['Slug']].sort_by { |sp| (sp['position'] || 999).to_i }.each do |subpage| %>
+                <%
+                  if defined?(@preview_mode) && @preview_mode
+                    subpage_url = preview_page_website_path(@website, page_slug: subpage['Slug'].sub(/^\//, ''))
+                  else
+                    subpage_url = subpage['Slug']
+                  end
+                %>
+                <a href="<%= subpage_url %>">
+                  <%= subpage['Name'] %>
+                </a>
+              <% end %>
+            </div>
           <% else %>
-            <a href="<%= page['Slug'] %>"
-               style="padding: 0.5rem 1rem; background: #f7fafc; color: #2d3748; border-radius: 0.375rem; text-decoration: none; font-weight: 500; border: 1px solid #e2e8f0;">
-              <%= page['Name'] %>
-            </a>
+            <!-- Regular page without subpages -->
+            <% if is_current_page %>
+              <span style="padding: 0.5rem 1rem; background: #3182ce; color: white; border-radius: 0.375rem; font-weight: 500;">
+                <%= page['Name'] %>
+              </span>
+            <% else %>
+              <%
+                if defined?(@preview_mode) && @preview_mode
+                  if page['Slug'] == '/'
+                    page_url = preview_website_path(@website)
+                  else
+                    page_url = preview_page_website_path(@website, page_slug: page['Slug'].sub(/^\//, ''))
+                  end
+                else
+                  page_url = page['Slug']
+                end
+              %>
+              <a href="<%= page_url %>"
+                 style="padding: 0.5rem 1rem; background: #f7fafc; color: #2d3748; border-radius: 0.375rem; text-decoration: none; font-weight: 500; border: 1px solid #e2e8f0;">
+                <%= page['Name'] %>
+              </a>
+            <% end %>
           <% end %>
         </li>
       <% end %>
@@ -25,9 +173,9 @@
   </nav>
 <% end %>
 
-<!-- Page Content -->
 <div class="website-content">
   <% if @page %>
+    <!-- Individual Page Content -->
     <article class="page-content" style="max-width: none;">
       <h2 style="font-size: 2rem; font-weight: bold; margin-bottom: 1.5rem; color: #1a202c;">
         <%= @page['Name'] %>
@@ -37,7 +185,86 @@
         <%= simple_format(@page['content']) %>
       </div>
     </article>
+
+    <!-- Breadcrumb for nested pages -->
+    <% if @page['Slug'] != "/" %>
+      <div class="breadcrumb" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.9rem; color: #718096;">
+        <%
+          # Generate correct home link for preview/live mode
+          if defined?(@preview_mode) && @preview_mode
+            home_url = preview_website_path(@website)
+          else
+            home_url = "/"
+          end
+        %>
+        <%= link_to "Home", home_url, style: "color: #3182ce; text-decoration: none;" %>
+        <%
+          # Generate breadcrumb from slug
+          slug_parts = @page['Slug'].split('/').reject(&:empty?)
+          current_path = ""
+          slug_parts.each_with_index do |part, index|
+            current_path += "/#{part}"
+            if index == slug_parts.length - 1
+              # Current page
+        %> › <span style="color: #2d3748;"><%= @page['Name'] %></span> <%
+        else
+          # Parent pages
+          parent_page = @website.content['pages'].find { |p| p['Slug'] == current_path }
+          if defined?(@preview_mode) && @preview_mode
+            parent_url = preview_page_website_path(@website, page_slug: current_path.sub(/^\//, ''))
+          else
+            parent_url = current_path
+          end
+      %> › <%= link_to (parent_page ? parent_page['Name'] : part.humanize), parent_url, style: "color: #3182ce; text-decoration: none;" %> <%
+        end
+        end
+      %>
+      </div>
+    <% end %>
+  <% elsif @website.content.is_a?(Hash) && @website.content['pages'].is_a?(Array) %>
+    <!-- Fallback: Show all pages if no specific page found -->
+    <%
+      sorted_pages = @website.content['pages'].sort_by { |page| (page['position'] || 999).to_i }
+      sorted_pages.each do |page|
+    %>
+      <div class="content-section" style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid #e2e8f0;">
+        <%
+          # Generate correct page link for preview/live mode
+          if defined?(@preview_mode) && @preview_mode
+            if page['Slug'] == '/'
+              page_link_url = preview_website_path(@website)
+            else
+              page_link_url = preview_page_website_path(@website, page_slug: page['Slug'].sub(/^\//, ''))
+            end
+          else
+            page_link_url = page['Slug']
+          end
+        %>
+        <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
+          <a href="<%= page_link_url %>" style="color: #3182ce; text-decoration: none;">
+            <%= page['Name'] %>
+          </a>
+        </h2>
+        <p style="color: #718096; font-size: 1rem;">
+          <%= truncate(page['content'], length: 200) %>
+        </p>
+        <a href="<%= page_link_url %>" style="color: #3182ce; text-decoration: none; font-weight: 500;">Read more →</a>
+      </div>
+    <% end %>
+  <% elsif @website.content.present? %>
+    <!-- Legacy content format support -->
+    <% if @website.content.is_a?(Hash) %>
+      <% @website.content.each do |key, value| %>
+        <div class="content-section">
+          <h2><%= key.to_s.humanize %></h2>
+          <p><%= value %></p>
+        </div>
+      <% end %>
+    <% else %>
+      <%= simple_format(@website.content) %>
+    <% end %>
   <% else %>
+    <!-- No content -->
     <div style="text-align: center; color: #718096; margin: 3rem 0;">
       <h2>Welcome to <%= @website.name %></h2>
       <p>This website is under construction.</p>
@@ -48,29 +275,11 @@
   <% end %>
 </div>
 
-<!-- Breadcrumb for nested pages -->
-<% if @page && @page['Slug'] != "/" %>
-  <div class="breadcrumb" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.9rem; color: #718096;">
-    <%= link_to "Home", "/", style: "color: #3182ce; text-decoration: none;" %>
-    <%
-      # Generate breadcrumb from slug
-      slug_parts = @page['Slug'].split('/').reject(&:empty?)
-      current_path = ""
-      slug_parts.each_with_index do |part, index|
-        current_path += "/#{part}"
-        if index == slug_parts.length - 1
-          # Current page
-    %> › <span style="color: #2d3748;"><%= @page['Name'] %></span> <%
-    else
-      # Parent pages
-      parent_page = @website.content['pages'].find { |p| p['Slug'] == current_path }
-  %> › <%= link_to (parent_page ? parent_page['Name'] : part.humanize), current_path, style: "color: #3182ce; text-decoration: none;" %> <%
-    end
-    end
-  %>
-  </div>
-<% end %>
-
 <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #e2e8f0; text-align: center; color: #718096; font-size: 0.9rem;">
   <p>Powered by WebsiteBuilder</p>
+  <% if defined?(@preview_mode) && @preview_mode %>
+    <p style="margin-top: 0.5rem; color: #d97706; font-weight: 500;">
+      🔍 Preview Mode - <%= link_to "Back to Dashboard", website_path(@website), style: "color: #d97706; text-decoration: none;" %>
+    </p>
+  <% end %>
 </footer>

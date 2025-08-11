@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_10_192644) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_11_110247) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -35,8 +35,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_10_192644) do
     t.datetime "updated_at", null: false
     t.integer "user_id"
     t.string "slug"
+    t.boolean "published", default: false, null: false
     t.index "lower((domain_name)::text)", name: "index_websites_on_lower_domain_name", unique: true
     t.index "lower((name)::text)", name: "index_websites_on_lower_name", unique: true
+    t.index ["published"], name: "index_websites_on_published"
     t.index ["slug"], name: "index_websites_on_slug", unique: true
     t.index ["user_id"], name: "index_websites_on_user_id_unique", unique: true
   end

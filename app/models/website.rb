@@ -22,12 +22,17 @@ class Website < ApplicationRecord
     content['pages']
   end
 
+  def pages_sorted_by_position
+    return [] unless content.is_a?(Hash) && content['pages'].is_a?(Array)
+    content['pages'].sort_by { |page| (page['position'] || 999).to_i }
+  end
+
   def find_page_by_slug(slug)
     pages.find { |page| page['Slug'] == slug }
   end
 
   def homepage
-    find_page_by_slug('/') || pages.first
+    find_page_by_slug('/') || pages_sorted_by_position.first
   end
 
   def has_pages?
@@ -38,8 +43,16 @@ class Website < ApplicationRecord
     pages.map { |page| page['Slug'] }.compact
   end
 
+  def page_slugs_by_position
+    pages_sorted_by_position.map { |page| page['Slug'] }.compact
+  end
+
   def page_names
     pages.map { |page| page['Name'] }.compact
+  end
+
+  def page_names_by_position
+    pages_sorted_by_position.map { |page| page['Name'] }.compact
   end
 
   # Get all nested pages under a parent slug
@@ -66,6 +79,43 @@ class Website < ApplicationRecord
   # Check if a slug exists in the pages
   def page_exists?(slug)
     pages.any? { |page| page['Slug'] == slug }
+  end
+
+  # Get the next available position number
+  def next_page_position
+    return 1 if pages.empty?
+
+    max_position = pages.map { |page| (page['position'] || 0).to_i }.max
+    max_position + 1
+  end
+
+  # Update page positions to be sequential
+  def normalize_page_positions!
+    return false unless content.is_a?(Hash) && content['pages'].is_a?(Array)
+
+    sorted_pages = pages_sorted_by_position
+    sorted_pages.each_with_index do |page, index|
+      page['position'] = index + 1
+    end
+
+    self.content = { 'pages' => sorted_pages }
+    true
+  end
+
+  # Find page by position
+  def find_page_by_position(position)
+    pages.find { |page| page['position'] == position.to_i }
+  end
+
+  # Get navigation menu items in order
+  def navigation_items
+    pages_sorted_by_position.map do |page|
+      {
+        name: page['Name'],
+        slug: page['Slug'],
+        position: page['position'] || 999
+      }
+    end
   end
 
   private

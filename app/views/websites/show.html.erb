@@ -9,7 +9,74 @@
 
   <%= render @website %>
 
-  <%= link_to "Edit this website", edit_website_path(@website), class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-  <%= link_to "Back to websites", websites_path, class: "w-full sm:w-auto text-center mt-2 sm:mt-0 sm:ml-2 rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-  <%= button_to "Destroy this website", @website, method: :delete, form_class: "sm:inline-block mt-2 sm:mt-0 sm:ml-2", class: "w-full rounded-md px-3.5 py-2.5 text-white bg-red-600 hover:bg-red-500 font-medium cursor-pointer", data: { turbo_confirm: "Are you sure?" } %>
+  <!-- Pages Management Section -->
+  <% if @website.content.is_a?(Hash) && @website.content['pages'].is_a?(Array) && @website.content['pages'].any? %>
+    <div class="mt-8 p-6 bg-gray-50 rounded-lg">
+      <h3 class="text-lg font-semibold mb-4">Website Pages</h3>
+
+      <div class="space-y-3">
+        <% @website.content['pages'].each do |page| %>
+          <div class="flex items-center justify-between p-4 bg-white rounded-md border border-gray-200">
+            <div class="flex-1">
+              <div class="flex items-center space-x-4">
+                <div class="flex-1">
+                  <h4 class="font-medium text-gray-900"><%= page['Name'] %></h4>
+                  <p class="text-sm text-gray-500">
+                    URL: <code class="bg-gray-100 px-1 rounded">http://<%= @website.slug %>.localhost:3000<%= page['Slug'] %></code>
+                  </p>
+                </div>
+
+                <div class="text-sm text-gray-600">
+                  <% content_length = page['content'].to_s.length %>
+                  <% if content_length > 0 %>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <%= content_length %> characters
+                    </span>
+                  <% else %>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      No content
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-2 ml-4">
+              <%= link_to "View Live", "http://#{@website.slug}.localhost:3000#{page['Slug']}",
+                          target: "_blank",
+                          class: "inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200" %>
+
+              <%= link_to "Edit Content", edit_page_website_path(@website, page_slug: page['Slug'].gsub('/', '').presence || 'home'),
+                          class: "inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="mt-4 pt-4 border-t border-gray-200">
+        <p class="text-sm text-gray-600 mb-3">Need to add, remove, or reorder pages?</p>
+        <%= link_to "Manage Page Structure", edit_website_path(@website),
+                    class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" %>
+      </div>
+    </div>
+  <% else %>
+    <div class="mt-8 p-6 bg-yellow-50 rounded-lg">
+      <h3 class="text-lg font-semibold mb-2 text-yellow-800">No Pages Found</h3>
+      <p class="text-yellow-700 mb-4">Your website doesn't have any pages yet. Add some pages to get started!</p>
+      <%= link_to "Add Pages", edit_website_path(@website),
+                  class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700" %>
+    </div>
+  <% end %>
+
+  <!-- Action Buttons -->
+  <div class="mt-6 flex flex-wrap gap-2">
+    <%= link_to "Edit Website Structure", edit_website_path(@website),
+                class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
+    <%= link_to "Back to websites", websites_path,
+                class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
+    <%= button_to "Destroy this website", @website, method: :delete,
+                  form_class: "sm:inline-block",
+                  class: "w-full rounded-md px-3.5 py-2.5 text-white bg-red-600 hover:bg-red-500 font-medium cursor-pointer",
+                  data: { turbo_confirm: "Are you sure?" } %>
+  </div>
 </div>

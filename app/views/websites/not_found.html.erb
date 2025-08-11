@@ -1,14 +1,61 @@
-<div class="website-header not-found">
-  <h1 class="website-title">Website Not Found</h1>
-  <p class="website-domain">The subdomain "<%= request.subdomain %>" does not exist</p>
+<div class="website-header">
+  <h1 class="website-title"><%= @website.name %></h1>
+  <p class="website-domain"><%= @website.domain_name %></p>
 </div>
 
-<div class="website-content" style="text-align: center;">
-  <h2>Sorry, we couldn't find that website.</h2>
-  <p>The website you're looking for doesn't exist or may have been removed.</p>
+<!-- Navigation Menu -->
+<% if @website.content.is_a?(Hash) && @website.content['pages'].is_a?(Array) %>
+  <nav class="website-nav" style="margin-bottom: 3rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
+    <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+      <% @website.content['pages'].each do |page| %>
+        <li>
+          <a href="<%= page['Slug'] %>"
+             style="padding: 0.5rem 1rem; background: #f7fafc; color: #2d3748; border-radius: 0.375rem; text-decoration: none; font-weight: 500; border: 1px solid #e2e8f0;">
+            <%= page['Name'] %>
+          </a>
+        </li>
+      <% end %>
+    </ul>
+  </nav>
+<% end %>
+
+<div class="website-content not-found" style="text-align: center;">
+  <h2 style="color: #e53e3e; font-size: 2rem; margin-bottom: 1rem;">Page Not Found</h2>
+  <p style="font-size: 1.1rem; color: #718096; margin-bottom: 2rem;">
+    The page "<%= @page_slug %>" doesn't exist on this website.
+  </p>
 
   <div style="margin-top: 2rem;">
-    <%= link_to "Go to WebsiteBuilder", root_url(subdomain: nil),
-                style: "display: inline-block; background: #3182ce; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 0.375rem; font-weight: 500;" %>
+    <a href="/"
+       style="display: inline-block; background: #3182ce; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 0.375rem; font-weight: 500; margin-right: 1rem;">
+      Go to Homepage
+    </a>
+
+    <% if user_signed_in? && @website.user == current_user %>
+      <a href="<%= edit_website_path(@website) %>"
+         style="display: inline-block; background: #38a169; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 0.375rem; font-weight: 500;">
+        Edit Website
+      </a>
+    <% end %>
   </div>
+
+  <% if @website.content.is_a?(Hash) && @website.content['pages'].is_a?(Array) && @website.content['pages'].any? %>
+    <div style="margin-top: 3rem; padding: 1.5rem; background: #f7fafc; border-radius: 0.5rem; display: inline-block;">
+      <h3 style="margin-bottom: 1rem; color: #2d3748;">Available Pages:</h3>
+      <ul style="list-style: none; padding: 0;">
+        <% @website.content['pages'].each do |page| %>
+          <li style="margin-bottom: 0.5rem;">
+            <a href="<%= page['Slug'] %>"
+               style="color: #3182ce; text-decoration: none; font-weight: 500;">
+              <%= page['Name'] %>
+            </a>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
 </div>
+
+<footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #e2e8f0; text-align: center; color: #718096; font-size: 0.9rem;">
+  <p>Powered by WebsiteBuilder</p>
+</footer>

@@ -3,18 +3,40 @@
   <p class="website-domain"><%= @website.domain_name %></p>
 </div>
 
-<div class="website-content">
-  <% if @website.content.present? %>
-    <% if @website.content.is_a?(Hash) %>
-      <% @website.content.each do |key, value| %>
-        <div class="content-section">
-          <h2><%= key.to_s.humanize %></h2>
-          <p><%= value %></p>
-        </div>
+<!-- Navigation Menu -->
+<% if @website.content.is_a?(Hash) && @website.content['pages'].is_a?(Array) %>
+  <nav class="website-nav" style="margin-bottom: 3rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
+    <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+      <% @website.content['pages'].each do |page| %>
+        <li>
+          <% if page['Slug'] == @page['Slug'] %>
+            <span style="padding: 0.5rem 1rem; background: #3182ce; color: white; border-radius: 0.375rem; font-weight: 500;">
+              <%= page['Name'] %>
+            </span>
+          <% else %>
+            <a href="<%= page['Slug'] %>"
+               style="padding: 0.5rem 1rem; background: #f7fafc; color: #2d3748; border-radius: 0.375rem; text-decoration: none; font-weight: 500; border: 1px solid #e2e8f0;">
+              <%= page['Name'] %>
+            </a>
+          <% end %>
+        </li>
       <% end %>
-    <% else %>
-      <%= simple_format(@website.content) %>
-    <% end %>
+    </ul>
+  </nav>
+<% end %>
+
+<!-- Page Content -->
+<div class="website-content">
+  <% if @page %>
+    <article class="page-content" style="max-width: none;">
+      <h2 style="font-size: 2rem; font-weight: bold; margin-bottom: 1.5rem; color: #1a202c;">
+        <%= @page['Name'] %>
+      </h2>
+
+      <div class="page-text" style="font-size: 1.1rem; line-height: 1.8; color: #2d3748;">
+        <%= simple_format(@page['content']) %>
+      </div>
+    </article>
   <% else %>
     <div style="text-align: center; color: #718096; margin: 3rem 0;">
       <h2>Welcome to <%= @website.name %></h2>
@@ -25,6 +47,29 @@
     </div>
   <% end %>
 </div>
+
+<!-- Breadcrumb for nested pages -->
+<% if @page && @page['Slug'] != "/" %>
+  <div class="breadcrumb" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.9rem; color: #718096;">
+    <%= link_to "Home", "/", style: "color: #3182ce; text-decoration: none;" %>
+    <%
+      # Generate breadcrumb from slug
+      slug_parts = @page['Slug'].split('/').reject(&:empty?)
+      current_path = ""
+      slug_parts.each_with_index do |part, index|
+        current_path += "/#{part}"
+        if index == slug_parts.length - 1
+          # Current page
+    %> › <span style="color: #2d3748;"><%= @page['Name'] %></span> <%
+    else
+      # Parent pages
+      parent_page = @website.content['pages'].find { |p| p['Slug'] == current_path }
+  %> › <%= link_to (parent_page ? parent_page['Name'] : part.humanize), current_path, style: "color: #3182ce; text-decoration: none;" %> <%
+    end
+    end
+  %>
+  </div>
+<% end %>
 
 <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #e2e8f0; text-align: center; color: #718096; font-size: 0.9rem;">
   <p>Powered by WebsiteBuilder</p>

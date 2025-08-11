@@ -1,0 +1,135 @@
+<% content_for :title, "Editing #{@page_title}" %>
+
+<div class="max-w-4xl mx-auto">
+  <% if notice.present? %>
+    <p class="py-2 px-3 bg-green-50 mb-5 text-green-500 font-medium rounded-md inline-block" id="notice"><%= notice %></p>
+  <% end %>
+
+  <% if alert.present? %>
+    <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-md inline-block" id="alert"><%= alert %></p>
+  <% end %>
+
+  <!-- Breadcrumb -->
+  <nav class="mb-6 text-sm">
+    <ol class="flex items-center space-x-2">
+      <li><%= link_to "Websites", websites_path, class: "text-blue-600 hover:text-blue-800" %></li>
+      <li class="text-gray-500">›</li>
+      <li><%= link_to @website.name, website_path(@website), class: "text-blue-600 hover:text-blue-800" %></li>
+      <li class="text-gray-500">›</li>
+      <li class="text-gray-500">Edit <%= @page_title %></li>
+    </ol>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="font-bold text-3xl text-gray-900 mb-2">Editing: <%= @page_title %></h1>
+    <div class="flex items-center space-x-4 text-sm text-gray-600">
+      <span>Page URL: <code class="bg-gray-100 px-2 py-1 rounded">http://<%= @website.slug %>.localhost:3000<%= @page_slug %></code></span>
+      <span>•</span>
+      <%= link_to "View Live Page", "http://#{@website.slug}.localhost:3000#{@page_slug}",
+                  target: "_blank",
+                  class: "text-blue-600 hover:text-blue-800 font-medium" %>
+    </div>
+  </div>
+
+  <!-- Content Editing Form -->
+  <%= form_with url: update_page_website_path(@website, page_slug: params[:page_slug]), method: :patch, class: "space-y-6" do |form| %>
+
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Page Content</h3>
+        <p class="mt-1 text-sm text-gray-600">
+          Write the content for your <%= @page_title.downcase %> page. You can use simple formatting and line breaks.
+        </p>
+      </div>
+
+      <div class="px-6 py-4">
+        <%= form.text_area :page_content,
+                           value: @page['content'],
+                           rows: 15,
+                           class: "block w-full shadow-sm rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                           placeholder: "Enter your content here...\n\nYou can write multiple paragraphs.\n\nJust separate them with blank lines." %>
+      </div>
+
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-600">
+            <strong>Tip:</strong> Separate paragraphs with blank lines for better formatting.
+          </div>
+          <div class="text-sm text-gray-500" id="character-count">
+            <%= @page['content'].to_s.length %> characters
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Section -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Live Preview</h3>
+        <p class="mt-1 text-sm text-gray-600">See how your content will look on the website.</p>
+      </div>
+
+      <div class="px-6 py-4">
+        <div id="content-preview" class="prose max-w-none">
+          <%= simple_format(@page['content']) %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+      <div class="flex space-x-3">
+        <%= link_to "‹ Back to Website", website_path(@website),
+                    class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" %>
+
+        <%= link_to "View Live Page", "http://#{@website.slug}.localhost:3000#{@page_slug}",
+                    target: "_blank",
+                    class: "inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100" %>
+      </div>
+
+      <div class="flex space-x-3">
+        <%= form.submit "Save Changes",
+                        class: "inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const textarea = document.querySelector('textarea[name="page_content"]');
+        const preview = document.getElementById('content-preview');
+        const characterCount = document.getElementById('character-count');
+
+        if (textarea && preview && characterCount) {
+            // Update preview and character count when user types
+            textarea.addEventListener('input', function() {
+                const content = this.value;
+
+                // Update character count
+                characterCount.textContent = content.length + ' characters';
+
+                // Update preview - convert line breaks to paragraphs like Rails simple_format
+                const formattedContent = content
+                    .split(/\n\s*\n/)  // Split on double line breaks
+                    .map(paragraph => paragraph.trim())
+                    .filter(paragraph => paragraph.length > 0)
+                    .map(paragraph => `<p>${paragraph.replace(/\n/g, '<br>')}</p>`)
+                    .join('');
+
+                preview.innerHTML = formattedContent || '<p class="text-gray-500 italic">Your content preview will appear here...</p>';
+            });
+
+            // Auto-resize textarea
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+
+            // Initial resize
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+        }
+    });
+</script>

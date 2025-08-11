@@ -16,6 +16,58 @@ class Website < ApplicationRecord
   # Callbacks
   before_validation :set_slug, on: [:create, :update]
 
+  # Helper methods for working with pages
+  def pages
+    return [] unless content.is_a?(Hash) && content['pages'].is_a?(Array)
+    content['pages']
+  end
+
+  def find_page_by_slug(slug)
+    pages.find { |page| page['Slug'] == slug }
+  end
+
+  def homepage
+    find_page_by_slug('/') || pages.first
+  end
+
+  def has_pages?
+    pages.any?
+  end
+
+  def page_slugs
+    pages.map { |page| page['Slug'] }.compact
+  end
+
+  def page_names
+    pages.map { |page| page['Name'] }.compact
+  end
+
+  # Get all nested pages under a parent slug
+  def child_pages(parent_slug)
+    return [] if parent_slug == '/'
+
+    pages.select do |page|
+      page['Slug'].start_with?("#{parent_slug}/") &&
+        page['Slug'] != parent_slug
+    end
+  end
+
+  # Get parent page slug for a given slug
+  def parent_page_slug(slug)
+    return nil if slug == '/'
+
+    parts = slug.split('/').reject(&:empty?)
+    return '/' if parts.length <= 1
+
+    parent_parts = parts[0..-2]
+    "/#{parent_parts.join('/')}"
+  end
+
+  # Check if a slug exists in the pages
+  def page_exists?(slug)
+    pages.any? { |page| page['Slug'] == slug }
+  end
+
   private
 
   def valid_domain_format

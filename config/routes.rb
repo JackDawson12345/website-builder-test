@@ -7,7 +7,6 @@ Rails.application.routes.draw do
   get "/debug_subdomain", to: "websites#debug_subdomain" if Rails.env.development?
 
   # Check if this is a subdomain request by looking at the host
-  # For uniteldirect.localhost -> extract "uniteldirect"
   subdomain_constraint = ->(req) {
     host_without_port = req.host.split(':').first
     parts = host_without_port.split('.')
@@ -22,7 +21,13 @@ Rails.application.routes.draw do
   }
 
   # Subdomain routes (uniteldirect.localhost:3000)
-  get "/", to: "websites#show_by_subdomain", constraints: subdomain_constraint, as: :subdomain_root
+  constraints subdomain_constraint do
+    # Homepage route - must come first
+    get "/", to: "websites#show_page", defaults: { page_slug: "/" }, as: :subdomain_root
+
+    # Catch-all route for dynamic pages - must come last
+    get "*page_slug", to: "websites#show_page", as: :subdomain_page
+  end
 
   # Main domain routes (localhost:3000)
   root "home#index", constraints: main_domain_constraint
@@ -30,6 +35,12 @@ Rails.application.routes.draw do
   resources :websites do
     member do
       get :preview
+      # Preview specific pages
+      get "preview/*page_slug", to: "websites#preview_page", as: :preview_page
+
+      # Edit specific page content
+      get "edit/:page_slug", to: "websites#edit_page", as: :edit_page
+      patch "edit/:page_slug", to: "websites#update_page", as: :update_page
     end
   end
 end

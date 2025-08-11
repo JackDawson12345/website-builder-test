@@ -21,12 +21,235 @@
     <%= form.text_field :domain_name, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": website.errors[:domain_name].none?, "border-red-400 focus:outline-red-600": website.errors[:domain_name].any?}] %>
   </div>
 
-  <div class="my-5">
-    <%= form.label :content %>
-    <%= form.text_field :content, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": website.errors[:content].none?, "border-red-400 focus:outline-red-600": website.errors[:content].any?}] %>
+  <!-- Pages Structure Management Section -->
+  <div class="my-8 p-6 bg-gray-50 rounded-lg">
+    <h3 class="text-lg font-semibold mb-4">Website Pages Structure</h3>
+    <p class="text-sm text-gray-600 mb-4">Add your pages here. You can edit the content for each page after saving.</p>
+
+    <div id="pages-container">
+      <%
+        pages = website.content.is_a?(Hash) && website.content['pages'].is_a?(Array) ? website.content['pages'] : []
+        pages = [{"Name" => "Home", "Slug" => "/", "content" => ""}] if pages.empty?
+      %>
+
+      <% pages.each_with_index do |page, index| %>
+        <div class="page-item mb-4 p-4 bg-white rounded-md border border-gray-200" data-page-index="<%= index %>">
+          <div class="flex justify-between items-start mb-3">
+            <h4 class="font-medium text-gray-900">Page <%= index + 1 %></h4>
+            <% unless page['Slug'] == '/' %>
+              <button type="button" class="remove-page text-red-600 hover:text-red-800 text-sm font-medium" onclick="removePage(this)">
+                Remove Page
+              </button>
+            <% end %>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Page Name</label>
+              <input type="text"
+                     name="pages[<%= index %>][Name]"
+                     value="<%= page['Name'] %>"
+                     class="block w-full shadow-sm rounded-md border border-gray-300 px-3 py-2 focus:outline-blue-600"
+                     placeholder="e.g., About Us"
+                     onchange="updatePageSlug(this)">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Page URL Slug</label>
+              <input type="text"
+                     name="pages[<%= index %>][Slug]"
+                     value="<%= page['Slug'] %>"
+                     class="block w-full shadow-sm rounded-md border border-gray-300 px-3 py-2 focus:outline-blue-600"
+                     placeholder="e.g., /about-us"
+                     <% if page['Slug'] == '/' %>readonly<% end %>>
+              <% if page['Slug'] == '/' %>
+                <p class="text-xs text-gray-500 mt-1">Homepage slug cannot be changed</p>
+              <% else %>
+                <p class="text-xs text-gray-500 mt-1">This will be the URL: http://<%= website.slug || 'yoursite' %>.localhost:3000<span class="slug-preview"><%= page['Slug'] %></span></p>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Hidden field to preserve existing content -->
+          <input type="hidden" name="pages[<%= index %>][content]" value="<%= page['content'] %>">
+        </div>
+      <% end %>
+    </div>
+
+    <button type="button"
+            onclick="addNewPage()"
+            class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+      </svg>
+      Add New Page
+    </button>
   </div>
+
+  <!-- Hidden field to store the JSON content -->
+  <%= form.hidden_field :content, id: "website_content_json" %>
 
   <div class="inline">
     <%= form.submit class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
   </div>
 <% end %>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        updateContentJson();
+    });
+
+    function addNewPage() {
+        const container = document.getElementById('pages-container');
+        const pageItems = container.querySelectorAll('.page-item');
+        const newIndex = pageItems.length;
+
+        const newPageHtml = `
+    <div class="page-item mb-4 p-4 bg-white rounded-md border border-gray-200" data-page-index="${newIndex}">
+      <div class="flex justify-between items-start mb-3">
+        <h4 class="font-medium text-gray-900">Page ${newIndex + 1}</h4>
+        <button type="button" class="remove-page text-red-600 hover:text-red-800 text-sm font-medium" onclick="removePage(this)">
+          Remove Page
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Page Name</label>
+          <input type="text"
+                 name="pages[${newIndex}][Name]"
+                 value=""
+                 class="block w-full shadow-sm rounded-md border border-gray-300 px-3 py-2 focus:outline-blue-600"
+                 placeholder="e.g., About Us"
+                 onchange="updatePageSlug(this)">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Page URL Slug</label>
+          <input type="text"
+                 name="pages[${newIndex}][Slug]"
+                 value=""
+                 class="block w-full shadow-sm rounded-md border border-gray-300 px-3 py-2 focus:outline-blue-600"
+                 placeholder="e.g., /about-us">
+          <p class="text-xs text-gray-500 mt-1">This will be the URL: http://yoursite.localhost:3000<span class="slug-preview"></span></p>
+        </div>
+      </div>
+
+      <!-- Hidden field for content (empty for new pages) -->
+      <input type="hidden" name="pages[${newIndex}][content]" value="">
+    </div>
+  `;
+
+        container.insertAdjacentHTML('beforeend', newPageHtml);
+        updateContentJson();
+    }
+
+    function removePage(button) {
+        const pageItem = button.closest('.page-item');
+        pageItem.remove();
+        reindexPages();
+        updateContentJson();
+    }
+
+    function reindexPages() {
+        const pageItems = document.querySelectorAll('.page-item');
+        pageItems.forEach((item, index) => {
+            item.setAttribute('data-page-index', index);
+            item.querySelector('h4').textContent = `Page ${index + 1}`;
+
+            // Update input names
+            const inputs = item.querySelectorAll('input');
+            inputs.forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && name.startsWith('pages[')) {
+                    const newName = name.replace(/pages\[\d+\]/, `pages[${index}]`);
+                    input.setAttribute('name', newName);
+                }
+            });
+        });
+    }
+
+    function updatePageSlug(nameInput) {
+        const pageItem = nameInput.closest('.page-item');
+        const slugInput = pageItem.querySelector('input[name*="[Slug]"]');
+        const slugPreview = pageItem.querySelector('.slug-preview');
+
+        // Don't auto-update if it's the homepage or if slug is already manually set
+        if (slugInput.value === '/' || (slugInput.value && slugInput.value !== '')) {
+            return;
+        }
+
+        const name = nameInput.value;
+        if (name) {
+            const slug = '/' + name.toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '');
+
+            slugInput.value = slug;
+            if (slugPreview) {
+                slugPreview.textContent = slug;
+            }
+        }
+
+        updateContentJson();
+    }
+
+    function updateContentJson() {
+        const pages = [];
+        const pageItems = document.querySelectorAll('.page-item');
+
+        pageItems.forEach(item => {
+            const nameInput = item.querySelector('input[name*="[Name]"]');
+            const slugInput = item.querySelector('input[name*="[Slug]"]');
+            const contentInput = item.querySelector('input[name*="[content]"]');
+
+            if (nameInput && slugInput) {
+                const page = {
+                    "Name": nameInput.value || '',
+                    "Slug": slugInput.value || '',
+                    "content": contentInput ? contentInput.value : ''
+                };
+                pages.push(page);
+            }
+        });
+
+        const contentJson = {
+            "pages": pages
+        };
+
+        document.getElementById('website_content_json').value = JSON.stringify(contentJson);
+    }
+
+    // Add event listeners to update JSON when inputs change
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('input[name*="pages"]')) {
+            updateContentJson();
+
+            // Update slug preview
+            if (e.target.name.includes('[Slug]')) {
+                const slugPreview = e.target.parentElement.querySelector('.slug-preview');
+                if (slugPreview) {
+                    slugPreview.textContent = e.target.value;
+                }
+            }
+        }
+    });
+
+    // Ensure slug starts with /
+    document.addEventListener('blur', function(e) {
+        if (e.target.matches('input[name*="[Slug]"]')) {
+            let value = e.target.value;
+            if (value && !value.startsWith('/')) {
+                e.target.value = '/' + value;
+                updateContentJson();
+
+                const slugPreview = e.target.parentElement.querySelector('.slug-preview');
+                if (slugPreview) {
+                    slugPreview.textContent = e.target.value;
+                }
+            }
+        }
+    });
+</script>

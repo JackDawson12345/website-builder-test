@@ -1,30 +1,53 @@
-<% content_for :title, "Websites" %>
+<% content_for :title, "My Website" %>
 
 <div class="w-full">
   <% if notice.present? %>
     <p class="py-2 px-3 bg-green-50 mb-5 text-green-500 font-medium rounded-md inline-block" id="notice"><%= notice %></p>
   <% end %>
 
+  <% if alert.present? %>
+    <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-md inline-block" id="alert"><%= alert %></p>
+  <% end %>
+
   <div class="flex justify-between items-center">
-    <h1 class="font-bold text-4xl">Websites</h1>
-    <%= link_to "New website", new_website_path, class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white block font-medium" %>
+    <h1 class="font-bold text-4xl">My Website</h1>
+    <% unless current_user.website %>
+      <%= link_to "Create Website", new_website_path, class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white block font-medium" %>
+    <% end %>
   </div>
 
   <div id="websites" class="min-w-full divide-y divide-gray-200 space-y-5">
-    <% byebug %>
-    <% if @websites.any? %>
-      <% @websites.each do |website| %>
-        <div class="flex flex-col sm:flex-row justify-between items-center pb-5 sm:pb-0">
-          <%= render website %>
-          <div class="w-full sm:w-auto flex flex-col sm:flex-row space-x-2 space-y-2">
-            <%= link_to "Show", website, class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-            <%= link_to "Edit", edit_website_path(website), class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-            <%= button_to "Destroy", website, method: :delete, class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 text-white bg-red-600 hover:bg-red-500 font-medium cursor-pointer", data: { turbo_confirm: "Are you sure?" } %>
-          </div>
+    <% if current_user.website %>
+      <div class="flex flex-col sm:flex-row justify-between items-center pb-5 sm:pb-0 mt-8">
+        <%= render current_user.website %>
+        <div class="w-full sm:w-auto flex flex-col sm:flex-row space-x-2 space-y-2">
+          <%= link_to "View Live Site", "http://#{current_user.website.slug}.localhost:3000",
+                      target: "_blank",
+                      class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-green-600 hover:bg-green-500 text-white inline-block font-medium" %>
+          <%= link_to "Preview", preview_website_path(current_user.website),
+                      class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium" %>
+          <%= link_to "Edit", edit_website_path(current_user.website),
+                      class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
+          <%= button_to "Delete", current_user.website, method: :delete,
+                        class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 text-white bg-red-600 hover:bg-red-500 font-medium cursor-pointer",
+                        data: { turbo_confirm: "Are you sure you want to delete your website? This action cannot be undone." } %>
         </div>
-      <% end %>
+      </div>
+
+      <div class="mt-6 p-4 bg-blue-50 rounded-md">
+        <h3 class="font-medium text-blue-900 mb-2">Your Website URL:</h3>
+        <p class="text-blue-700">
+          <strong><%= link_to "http://#{current_user.website.slug}.localhost:3000", "http://#{current_user.website.slug}.localhost:3000", target: "_blank", class: "underline" %></strong>
+        </p>
+        <p class="text-sm text-blue-600 mt-2">
+          This is how visitors will access your website. Make sure to bookmark this URL!
+        </p>
+      </div>
     <% else %>
-      <p class="text-center my-10">No websites found.</p>
+      <div class="text-center my-10">
+        <p class="text-gray-600 mb-4">You don't have a website yet.</p>
+        <%= link_to "Create Your Website", new_website_path, class: "rounded-md px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium text-lg" %>
+      </div>
     <% end %>
   </div>
 </div>

@@ -1,0 +1,14 @@
+<div class="website-header not-found">
+  <h1 class="website-title">Website Not Found</h1>
+  <p class="website-domain">The subdomain "<%= request.subdomain %>" does not exist</p>
+</div>
+
+<div class="website-content" style="text-align: center;">
+  <h2>Sorry, we couldn't find that website.</h2>
+  <p>The website you're looking for doesn't exist or may have been removed.</p>
+
+  <div style="margin-top: 2rem;">
+    <%= link_to "Go to WebsiteBuilder", root_url(subdomain: nil),
+                style: "display: inline-block; background: #3182ce; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 0.375rem; font-weight: 500;" %>
+  </div>
+</div>

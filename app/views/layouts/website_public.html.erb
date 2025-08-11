@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= @website&.name || "Website" %></title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="<%= @website&.name %>">
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+
+  <link rel="icon" href="/icon.png" type="image/png">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.png">
+
+  <%# Includes all stylesheet files in app/assets/stylesheets %>
+  <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+  <%= javascript_importmap_tags %>
+
+  <style>
+      /* Basic styling for public websites */
+      body {
+          font-family: system-ui, -apple-system, sans-serif;
+          line-height: 1.6;
+          margin: 0;
+          padding: 0;
+          background: #f8fafc;
+      }
+
+      .website-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 2rem;
+          background: white;
+          min-height: 100vh;
+          box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      }
+
+      .website-header {
+          text-align: center;
+          margin-bottom: 3rem;
+          padding-bottom: 2rem;
+          border-bottom: 2px solid #e2e8f0;
+      }
+
+      .website-title {
+          font-size: 3rem;
+          font-weight: bold;
+          color: #1a202c;
+          margin: 0;
+      }
+
+      .website-domain {
+          color: #718096;
+          margin-top: 0.5rem;
+          font-size: 1.1rem;
+      }
+
+      .website-content {
+          color: #2d3748;
+          font-size: 1.1rem;
+      }
+
+      .not-found {
+          text-align: center;
+          color: #e53e3e;
+      }
+
+      .admin-bar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          background: #2d3748;
+          color: white;
+          padding: 0.5rem 1rem;
+          font-size: 0.9rem;
+          z-index: 1000;
+      }
+
+      .admin-bar a {
+          color: #90cdf4;
+          text-decoration: none;
+          margin-left: 1rem;
+      }
+
+      .admin-bar a:hover {
+          color: white;
+      }
+
+      .with-admin-bar {
+          margin-top: 3rem;
+      }
+  </style>
+</head>
+
+<body>
+<% if user_signed_in? && @website&.user == current_user %>
+  <div class="admin-bar">
+    🔧 Admin Mode: You are viewing your website
+    <%= link_to "Edit Website", edit_website_path(@website) %>
+    <%= link_to "Dashboard", websites_path %>
+    <%= link_to "Sign Out", destroy_user_session_path, method: :delete %>
+  </div>
+<% end %>
+
+<div class="website-container <%= 'with-admin-bar' if user_signed_in? && @website&.user == current_user %>">
+  <%= yield %>
+</div>
+</body>
+</html>

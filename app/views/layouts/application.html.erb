@@ -20,12 +20,16 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
   </head>
 
   <body>
     <main class="container mx-auto mt-28 px-5">
       <p class="notice"><%= notice %></p>
       <p class="alert"><%= alert %></p>
+      <%= link_to "Log out", destroy_user_session_path, class: 'ml-3 text-red-600 hover:text-red-800 bg-transparent border-0 p-0 cursor-pointer', data: { "turbo-method": :delete } %>
       <%= yield %>
     </main>
   </body>

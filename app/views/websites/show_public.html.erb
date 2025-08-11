@@ -1,0 +1,31 @@
+<div class="website-header">
+  <h1 class="website-title"><%= @website.name %></h1>
+  <p class="website-domain"><%= @website.domain_name %></p>
+</div>
+
+<div class="website-content">
+  <% if @website.content.present? %>
+    <% if @website.content.is_a?(Hash) %>
+      <% @website.content.each do |key, value| %>
+        <div class="content-section">
+          <h2><%= key.to_s.humanize %></h2>
+          <p><%= value %></p>
+        </div>
+      <% end %>
+    <% else %>
+      <%= simple_format(@website.content) %>
+    <% end %>
+  <% else %>
+    <div style="text-align: center; color: #718096; margin: 3rem 0;">
+      <h2>Welcome to <%= @website.name %></h2>
+      <p>This website is under construction.</p>
+      <% if user_signed_in? && @website.user == current_user %>
+        <p><%= link_to "Add some content", edit_website_path(@website), style: "color: #3182ce; text-decoration: none;" %></p>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #e2e8f0; text-align: center; color: #718096; font-size: 0.9rem;">
+  <p>Powered by WebsiteBuilder</p>
+</footer>
